@@ -13,6 +13,7 @@ from langchain_community.llms import GPT4All
 from langchain_openai import ChatOpenAI
 import pdfkit
 import json
+import openai
 
 ssl._create_default_https_context = ssl._create_unverified_context
 # embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
@@ -21,7 +22,11 @@ local_path = (
     "./models/meditron-7b.Q4_K_M.gguf"  # replace with your desired local file path
 )
 local_llm = "meditron-7b.Q4_K_M.gguf"
-os.environ["OPENAI_API_KEY"] = "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"
+# get the API key from the github secrets
+openai.api_key = os.getenv("OPENAI_API_KEY")
+# assign it to the environment variable
+os.environ["OPENAI_API_KEY"] = openai.api_key
+# os.environ["OPENAI_API_KEY"] = "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"
 local_llm = GPT4All(model=local_path, verbose=True)
 embeddings = SentenceTransformerEmbeddings(
     model_name="NeuML/pubmedbert-base-embeddings"
@@ -47,7 +52,7 @@ vectorstore = Milvus.from_documents(
         "uri": "https://in03-95dd43464153a8a.api.gcp-us-west1.zillizcloud.com",
         "token": "c6284a1a3345e7686b37791a0eb6474aeb781cfbd5cc2df815efa32c9159d999027e95f155ef6ad7a7d5c6b95a5989a6687fa2b6",
     },
-    #drop_old=True,
+    # drop_old=True,
     collection_name="vector_db",
 )
 
@@ -159,7 +164,7 @@ def load_and_store_research_papers(query_string, no_of_documents):
             "uri": "https://in03-95dd43464153a8a.api.gcp-us-west1.zillizcloud.com",
             "token": "c6284a1a3345e7686b37791a0eb6474aeb781cfbd5cc2df815efa32c9159d999027e95f155ef6ad7a7d5c6b95a5989a6687fa2b6",
         },
-        #drop_old=True,
+        # drop_old=True,
         collection_name="vector_db",
     )
 

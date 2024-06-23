@@ -52,7 +52,7 @@ config = {
     "threads": int(os.cpu_count() / 2),
 }
 os.environ["OPENAI_API_KEY"] = "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"
-local_llm = GPT4All(model=local_path,verbose=True)
+local_llm = GPT4All(model=local_path, verbose=True)
 gpt4 = ChatOpenAI(model_name="gpt-4", temperature=0, max_tokens=3500, verbose=True)
 
 
@@ -167,8 +167,10 @@ config = {
     "stream": True,
     "threads": int(os.cpu_count() / 2),
 }
-os.environ["OPENAI_API_KEY"] = "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"
-local_llm = GPT4All(model=local_path,verbose=True)
+# os.environ["OPENAI_API_KEY"] = "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"
+openai.api_key = os.getenv("OPENAI_API_KEY")
+os.environ["OPENAI_API_KEY"] = openai.api_key
+local_llm = GPT4All(model=local_path, verbose=True)
 gpt4 = ChatOpenAI(model_name="gpt-4", temperature=0, max_tokens=3500, verbose=True)
 
 
@@ -272,5 +274,3 @@ local_path = (
     "./models/meditron-7b.Q4_K_M.gguf"  # replace with your desired local file path
 )
 local_llm = "meditron-7b.Q4_K_M.gguf"
-
-

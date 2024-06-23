@@ -66,7 +66,11 @@ config = {
     "stream": True,
     "threads": int(os.cpu_count() / 2),
 }
-os.environ["OPENAI_API_KEY"] = "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"
+# get the API KEy from github secrets
+openai.api_key = os.getenv("OPENAI_API_KEY")
+# Assign it to os.environ
+os.environ["OPENAI_API_KEY"] = openai.api_key
+# os.environ["OPENAI_API_KEY"] = "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"
 local_llm = GPT4All(model=local_path, verbose=True)
 gpt4 = ChatOpenAI(model_name="gpt-4", temperature=0, max_tokens=3500, verbose=True)
 
@@ -192,7 +196,7 @@ async def get_response(request: Request, query: str = Form(...)):
         verbose=True,
     )
     gpt4_response = qa_gpt4(query)
-    #local_llm_response = qa_gpt4(query)
+    # local_llm_response = qa_gpt4(query)
     gpt4_response_list, local_llm_response_list = get_queries(query)
     # Now we will get different queries from MultiQueryRetriever and get additional GPT4 and Local LLM Response
 
@@ -224,9 +228,9 @@ async def get_response(request: Request, query: str = Form(...)):
         )
         doc += "<br>"
         index += 1
-    #local_llm_answer = local_llm_response["result"]
+    # local_llm_answer = local_llm_response["result"]
     local_llm_source_document = " "
-    '''for local_llm_source_doc in local_llm_response["source_documents"]:
+    """for local_llm_source_doc in local_llm_response["source_documents"]:
         print(
             "The source document for Local LLM is: ",
             local_llm_source_doc.metadata["source"],
@@ -249,7 +253,7 @@ async def get_response(request: Request, query: str = Form(...)):
         local_llm_doc += source_doc.metadata["source"]
         local_llm_doc += "<br>"
         index += 1
-    '''
+    """
     for response in gpt4_response_list:
         print("The response from MultiQueryRetriever is: ", response)
         # Add a new line to the answer
@@ -260,7 +264,7 @@ async def get_response(request: Request, query: str = Form(...)):
         answer += "<br>"
         answer += "#####GPT4 Multi Query Retriever Response: End ######"
         answer += "<br>"
-    '''for response in local_llm_response_list:
+    """for response in local_llm_response_list:
         print("The response from MultiQueryRetriever for Local LLM is: ", response)
         # Add a new line to the answer
         local_llm_answer += "<br>"
@@ -270,16 +274,16 @@ async def get_response(request: Request, query: str = Form(...)):
         local_llm_answer += "<br>"
         local_llm_answer += "Local LLM Multi Query Retriever Response: End ######"
         local_llm_answer += "<br>"
-    '''
+    """
     response_data = jsonable_encoder(
         json.dumps(
             {
                 "answer": answer,
                 "source_document": doc,
                 "doc": doc,
-                #"local_llm_answer": local_llm_answer,
-                #"local_llm_source_document": local_llm_source_document,
-                #"local_llm_doc": local_llm_doc,
+                # "local_llm_answer": local_llm_answer,
+                # "local_llm_source_document": local_llm_source_document,
+                # "local_llm_doc": local_llm_doc,
             }
         )
     )
@@ -291,4 +295,3 @@ async def get_response(request: Request, query: str = Form(...)):
 # Define the main function
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
