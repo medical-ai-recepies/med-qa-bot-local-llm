@@ -167,7 +167,7 @@ config = {
     "stream": True,
     "threads": int(os.cpu_count() / 2),
 }
-# os.environ["OPENAI_API_KEY"] = "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"
+
 openai.api_key = os.getenv("OPENAI_API_KEY")
 os.environ["OPENAI_API_KEY"] = openai.api_key
 local_llm = GPT4All(model=local_path, verbose=True)

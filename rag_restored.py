@@ -70,7 +70,7 @@ config = {
 openai.api_key = os.getenv("OPENAI_API_KEY")
 # Assign it to os.environ
 os.environ["OPENAI_API_KEY"] = openai.api_key
-# os.environ["OPENAI_API_KEY"] = "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"
+
 local_llm = GPT4All(model=local_path, verbose=True)
 gpt4 = ChatOpenAI(model_name="gpt-4", temperature=0, max_tokens=3500, verbose=True)
 
