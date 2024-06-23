@@ -53,8 +53,6 @@ config = {
 }
 # Get the API Key from github secrets
 openai.api_key = os.getenv("OPENAI_API_KEY")
-# assign it to the environment variable
-os.environ["OPENAI_API_KEY"] = openai.api_key
 
 local_llm = GPT4All(model=local_path, verbose=True)
 gpt4 = ChatOpenAI(model_name="gpt-4", temperature=0, max_tokens=3500, verbose=True)
