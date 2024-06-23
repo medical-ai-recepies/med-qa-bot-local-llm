@@ -12,7 +12,7 @@ import os
 from langchain_community.llms import GPT4All
 from langchain_openai import ChatOpenAI
 import pdfkit
-
+import json
 
 ssl._create_default_https_context = ssl._create_unverified_context
 # embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
@@ -21,7 +21,7 @@ local_path = (
     "./models/meditron-7b.Q4_K_M.gguf"  # replace with your desired local file path
 )
 local_llm = "meditron-7b.Q4_K_M.gguf"
-os.environ["OPENAI_API_KEY"] = "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"
+os.environ["OPENAI_API_KEY"] = "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"
 local_llm = GPT4All(model=local_path, verbose=True)
 embeddings = SentenceTransformerEmbeddings(
     model_name="NeuML/pubmedbert-base-embeddings"
@@ -47,7 +47,7 @@ vectorstore = Milvus.from_documents(
         "uri": "https://in03-95dd43464153a8a.api.gcp-us-west1.zillizcloud.com",
         "token": "c6284a1a3345e7686b37791a0eb6474aeb781cfbd5cc2df815efa32c9159d999027e95f155ef6ad7a7d5c6b95a5989a6687fa2b6",
     },
-    drop_old=True,
+    #drop_old=True,
     collection_name="vector_db",
 )
 
@@ -117,7 +117,7 @@ def load_and_store_research_papers(query_string, no_of_documents):
         # Create a String object from page content and append Title and Copy Right at the top of the page
         doc_page_content = (
             "Title: "
-            + document.metadata["Title"]
+            + json.dumps(document.metadata["Title"])
             + "\n"
             + "Copy Right: "
             + document.metadata["Copyright Information"]
@@ -159,7 +159,7 @@ def load_and_store_research_papers(query_string, no_of_documents):
             "uri": "https://in03-95dd43464153a8a.api.gcp-us-west1.zillizcloud.com",
             "token": "c6284a1a3345e7686b37791a0eb6474aeb781cfbd5cc2df815efa32c9159d999027e95f155ef6ad7a7d5c6b95a5989a6687fa2b6",
         },
-        drop_old=True,
+        #drop_old=True,
         collection_name="vector_db",
     )
 
