@@ -52,8 +52,8 @@ config = {
     "threads": int(os.cpu_count() / 2),
 }
 # Get the API Key from github secrets
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
+# openai.api_key = os.getenv("OPENAI_API_KEY")
+os.environ["OPENAI_API_KEY"] = "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"
 local_llm = GPT4All(model=local_path, verbose=True)
 gpt4 = ChatOpenAI(model_name="gpt-4", temperature=0, max_tokens=3500, verbose=True)
 
@@ -111,7 +111,7 @@ prompt = PromptTemplate(
 local_llm_prompt = PromptTemplate(
     template=local_llm_prompt_template, input_variables=["summaries", "question"]
 )
-retriever = db.as_retriever(search_kwargs={"k": 10})
+retriever = db.as_retriever(search_kwargs={"k": 50})
 multi_retriever = MultiQueryRetriever.from_llm(llm=gpt4, retriever=db.as_retriever())
 multi_retriever_local_llm = MultiQueryRetriever.from_llm(
     llm=local_llm, retriever=db.as_retriever()

@@ -23,9 +23,10 @@ local_path = (
 )
 local_llm = "meditron-7b.Q4_K_M.gguf"
 # get the API key from the github secrets
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# openai.api_key = os.getenv("OPENAI_API_KEY")
 # assign it to the environment variable
-os.environ["OPENAI_API_KEY"] = openai.api_key
+# os.environ["OPENAI_API_KEY"] = openai.api_key
+os.environ["OPENAI_API_KEY"] = "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"
 local_llm = GPT4All(model=local_path, verbose=True)
 embeddings = SentenceTransformerEmbeddings(
     model_name="NeuML/pubmedbert-base-embeddings"

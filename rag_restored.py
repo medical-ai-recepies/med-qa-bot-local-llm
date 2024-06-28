@@ -67,10 +67,10 @@ config = {
     "threads": int(os.cpu_count() / 2),
 }
 # get the API KEy from github secrets
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# openai.api_key = os.getenv("OPENAI_API_KEY")
 # Assign it to os.environ
-os.environ["OPENAI_API_KEY"] = openai.api_key
-
+# os.environ["OPENAI_API_KEY"] = openai.api_key
+os.environ["OPENAI_API_KEY"] = "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"
 local_llm = GPT4All(model=local_path, verbose=True)
 gpt4 = ChatOpenAI(model_name="gpt-4", temperature=0, max_tokens=3500, verbose=True)
 
