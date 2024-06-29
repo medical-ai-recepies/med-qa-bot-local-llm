@@ -30,7 +30,7 @@ from langchain.prompts import PromptTemplate
 import os
 import json
 import openai
-
+from QueryGoogleScholar import QueryGoogleScholar
 
 # Output parser will split the LLM result into a list of queries
 # class LineListOutputParser(PydanticOutputParser):
@@ -70,9 +70,11 @@ config = {
 # openai.api_key = os.getenv("OPENAI_API_KEY")
 # Assign it to os.environ
 # os.environ["OPENAI_API_KEY"] = openai.api_key
-os.environ["OPENAI_API_KEY"] = "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"
-local_llm = GPT4All(model=local_path, verbose=True)
-gpt4 = ChatOpenAI(model_name="gpt-4", temperature=0, max_tokens=3500, verbose=True)
+os.environ["OPENAI_API_KEY"] = (
+    "sk-proj-XbUsVEqAZDhW9je90anIT3BlbkFJasvVa7C2sPaCd8cWC8ek"
+)
+# local_llm = GPT4All(model=local_path, verbose=True)
+gpt4 = ChatOpenAI(model_name="gpt-4o", temperature=0, max_tokens=5000, verbose=True)
 
 
 print("LLM Initialized....")
@@ -115,7 +117,7 @@ db = Milvus(
         "uri": "https://in03-95dd43464153a8a.api.gcp-us-west1.zillizcloud.com",
         "token": "c6284a1a3345e7686b37791a0eb6474aeb781cfbd5cc2df815efa32c9159d999027e95f155ef6ad7a7d5c6b95a5989a6687fa2b6",
     },
-    collection_name="vector_db",
+    collection_name="vector_db_scholar",
 )
 
 prompt = PromptTemplate(
@@ -134,36 +136,37 @@ QUERY_PROMPT = PromptTemplate(
 )
 # output_parser = LineListOutputParser()
 
-local_llm_prompt = PromptTemplate(
-    template=local_llm_prompt_template, input_variables=["context", "question"]
-)
+# local_llm_prompt = PromptTemplate(
+#   template=local_llm_prompt_template, input_variables=["context", "question"]
+# )
 retriever = db.as_retriever(search_kwargs={"k": 10})
 multi_gpt4_llm_chain = LLMChain(llm=gpt4, prompt=QUERY_PROMPT)
-multi_local_llm_chain = LLMChain(llm=local_llm, prompt=QUERY_PROMPT)
+# multi_local_llm_chain = LLMChain(llm=local_llm, prompt=QUERY_PROMPT)
 multi_retriever = MultiQueryRetriever(
     retriever=db.as_retriever(), llm_chain=multi_gpt4_llm_chain, parser_key="lines"
 )
-multi_retriever_local_llm = MultiQueryRetriever(
-    retriever=db.as_retriever(), llm_chain=multi_local_llm_chain, parser_key="lines"
-)
+# multi_retriever_local_llm = MultiQueryRetriever(
+#   retriever=db.as_retriever(), llm_chain=multi_local_llm_chain, parser_key="lines"
+# )
 
 
 def get_queries(query_string):
     # Using ChatOpenAI to get more queries using MultiQueryRetriever
 
     queries = multi_retriever.get_relevant_documents(query=query_string)
-    queries_local_llm = multi_retriever_local_llm.get_relevant_documents(
-        query=query_string
-    )
+    # queries_local_llm = multi_retriever_local_llm.get_relevant_documents(
+    #     query=query_string
+    # )
     gpt4_query_list = []
-    local_llm_query_list = []
+    # local_llm_query_list = []
     for query in queries:
         print("Query from MultiQueryRetriver is: ", query)
         gpt4_query_list.append(query.page_content)
-    for query in queries_local_llm:
-        print("Query from MultiQueryRetriver for Local LLM is: ", query)
-        local_llm_query_list.append(query.page_content)
-    return gpt4_query_list, local_llm_query_list
+    # for query in queries_local_llm:
+    #     print("Query from MultiQueryRetriver for Local LLM is: ", query)
+    #     local_llm_query_list.append(query.page_content)
+    # return gpt4_query_list, local_llm_query_list
+    return gpt4_query_list
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -187,17 +190,17 @@ async def get_response(request: Request, query: str = Form(...)):
         chain_type_kwargs=chain_type_kwargs,
         verbose=True,
     )
-    qa_meditron_llm = RetrievalQA.from_chain_type(
-        llm=local_llm,
-        chain_type="stuff",
-        retriever=retriever,
-        return_source_documents=True,
-        chain_type_kwargs=chain_type_kwargs_local_llm,
-        verbose=True,
-    )
+    # qa_meditron_llm = RetrievalQA.from_chain_type(
+    #     llm=local_llm,
+    #     chain_type="stuff",
+    #     retriever=retriever,
+    #     return_source_documents=True,
+    #     chain_type_kwargs=chain_type_kwargs_local_llm,
+    #     verbose=True,
+    # )
     gpt4_response = qa_gpt4(query)
     # local_llm_response = qa_gpt4(query)
-    gpt4_response_list, local_llm_response_list = get_queries(query)
+    gpt4_response_list = get_queries(query)
     # Now we will get different queries from MultiQueryRetriever and get additional GPT4 and Local LLM Response
 
     answer = gpt4_response["answer"]
@@ -294,4 +297,4 @@ async def get_response(request: Request, query: str = Form(...)):
 
 # Define the main function
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8001)
