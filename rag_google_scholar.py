@@ -10,7 +10,7 @@ from langchain.chains.qa_with_sources.retrieval import (
     RetrievalQAWithSourcesChain,
 )
 from langchain.chains.retrieval_qa.base import RetrievalQA
-from ingest import load_and_store_research_papers  # LineList
+from ingest_google_scholar import load_and_store_research_papers  # LineList
 from langchain.retrievers.multi_query import MultiQueryRetriever
 from langchain.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
@@ -46,6 +46,7 @@ app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 # app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/PDFs", StaticFiles(directory="PDFs"), name="PDFs")
 # The source of this model is -> https://huggingface.co/TheBloke/meditron-7B-GGUF/blob/main/meditron-7b.Q5_K_S.gguf
 # local_path = (
 #     "./models/meditron-7b.Q4_K_M.gguf"  # replace with your desired local file path
