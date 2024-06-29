@@ -1,183 +1,170 @@
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import Chroma
-from langchain.embeddings import SentenceTransformerEmbeddings
-from langchain.document_loaders import DirectoryLoader, PubMedLoader
-from langchain.document_loaders import PyPDFLoader
-from langchain.vectorstores import Qdrant, Milvus
-import ssl
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-import os
-from langchain_community.llms import GPT4All
-from langchain_openai import ChatOpenAI
-import pdfkit
-from pydantic import BaseModel, Field
-from typing import List
-from langchain_community.tools.google_scholar import GoogleScholarQueryRun
-from langchain_community.utilities.google_scholar import GoogleScholarAPIWrapper
-from google_scholar_py import SerpApiGoogleScholarOrganic
-import json
 import requests
-from bs4 import BeautifulSoup
-import pdfkit
+import concurrent.futures
 import os
+from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import time
+import json
+import pdfkit
+from pydantic import BaseModel, Field
+from google_scholar_organic_query import GoogleScholarOrganicQuery
 
 
 class QueryGoogleScholar(BaseModel):
     query: str = Field(
-        ...,
-        title="Query",
-        description="The query to run on Google Scholar",
+        ..., title="Query", description="The query to run on Google Scholar"
     )
-
-    def run(self):
-        ssl._create_default_https_context = ssl._create_unverified_context
-        # pass the SERP API key here
-        os.environ["SERP_API_KEY"] = (
-            "bb49589c8703d72cbd466653fdcf0b6c1f50237804e3496e2f04219590b2ba57"
-        )
-        google_scholar = GoogleScholarAPIWrapper()
-        google_scholar_query = GoogleScholarQueryRun(api_wrapper=google_scholar)
-        results = google_scholar_query.run(self.query)
-        return results
-
-    def ensure_directory_exists(self):
-        if not os.path.exists("PDFs"):
-            os.makedirs("PDFs")
+    max_pages: int = Field(
+        10, title="Max Pages", description="The maximum number of pages to fetch"
+    )
 
     def run_query(self):
         start = time.time()
-        profile_parser = SerpApiGoogleScholarOrganic()
+        profile_parser = GoogleScholarOrganicQuery()
         data = profile_parser.scrape_google_scholar_organic_results(
             query=self.query,
             api_key="bb49589c8703d72cbd466653fdcf0b6c1f50237804e3496e2f04219590b2ba57",  # https://serpapi.com/manage-api-key
             pagination=True,
+            max_pages=self.max_pages,
             # other params
         )
         end = time.time()
         total = end - start
+        total = round(total, 2)
         print(
             f"Time taken to run Google Scholar Query for search {self.query} is : {total} seconds"
         )
         return json.dumps(data, indent=4)
 
+    def ensure_directory_exists(self):
+        if not os.path.exists("PDFs"):
+            os.makedirs("PDFs")
+
+    def parse_html(self, html_content):
+        return BeautifulSoup(html_content, "html.parser")
+
+    def download_pdf_content(self, url):
+        response = requests.get(url)
+        if response.status_code == 200:
+            file_path = os.path.join("PDFs", url.split("/")[-1])
+            with open(file_path, "wb") as f:
+                f.write(response.content)
+            return "PDF downloaded successfully to: " + file_path
+        return "Failed to download the PDF."
+
     def locate_and_download_pdf(self, url: str, title: str = None):
-        # Make a request to the webpage
-        # Add start and end time for the method
         start = time.time()
 
-        try:
-            # Setup Chrome options
-            options = Options()
-            options.add_argument("--headless")  # Enables headless mode
-            options.add_argument("--window-size=1920,1080")  # Sets the window size
-            options.add_argument("--disable-gpu")  # Disables GPU hardware acceleration
-            options.add_argument(
-                "--no-sandbox"
-            )  # Bypass OS security model (necessary on some systems)
-            options.add_argument(
-                "--disable-dev-shm-usage"
-            )  # Overcomes limited resource problems
-
-            # Instantiate a webdriver with options
-            driver = webdriver.Chrome(options=options)
-            # Open the URL with Selenium
-            driver.get(url)
-
-            # Optionally, add some wait here if the page needs time to load JavaScript content
-            driver.implicitly_wait(
-                2
-            )  # You might need to adjust the waiting time based on page load
-
-            # Get the page source
-            html = driver.page_source
-            driver.quit()  # Make sure to close the driver after task completion
-            # Ensure the PDFs directory exists
-            self.ensure_directory_exists()
-            # Use BeautifulSoup to parse the fetched HTML
-            soup = BeautifulSoup(html, "html.parser")
-            # Check to see if its a Empty Page or the page has very few elements without any text
-            if len(soup.get_text()) < 100:
-                print(
-                    f"Empty Page or Page has very few elements without any text Skipping {title}"
-                )
-                return
-            # Search for a download link that possibly links to a PDF
-            pdf_link = None
-            for link in soup.find_all("a"):
-                if (
-                    "href" in link.attrs
-                    and "download" in link.text.lower()
-                    and link["href"].endswith(".pdf")
-                ):
-                    pdf_link = link["href"]
-                    break
-
-            if pdf_link:
-                # Download the PDF
-                pdf_response = requests.get(pdf_link)
-                if pdf_response.status_code == 200:
-                    pdf_file_path = os.path.join("PDFs", pdf_link, "_downloaded.pdf")
-                    with open(pdf_file_path, "wb") as f:
-                        f.write(pdf_response.content)
-                    print("PDF downloaded successfully to:", pdf_file_path)
-                else:
-                    print("Failed to download the PDF.")
-            else:
-                # Convert the entire page to PDF as a fallback using wkhtmltopdf
-                # name the pdf file to that of the title of the page
-                try:
-                    pdf_file_name = title if title != None else url.split("/")[-1]
-                    pdf_file_path = os.path.join("PDFs", pdf_file_name + ".pdf")
-                    pdfkit.from_url(url, pdf_file_path)
-                    print(
-                        "Web page converted to PDF successfully and stored at:",
-                        pdf_file_path,
-                    )
-                except Exception as e:
-                    print(
-                        f"An error occurred: while writing file and removing the file {pdf_file_name}",
-                        e,
-                    )
-                    os.remove(pdf_file_path)
-        except Exception as e:
-            print("An error occurred:", e)
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(self._async_locate_and_download, url, title)
+            try:
+                result = future.result()
+                print(result)
+            except Exception as e:
+                print(f"An error occurred during the PDF download process: {e}")
 
         end = time.time()
-        total = end - start
-        print(f"Time taken to download PDF: {total} seconds")
+        print(f"Time taken to download PDF: {round(end - start, 2)} seconds")
 
-    # Connect to
+    def _async_locate_and_download(self, url, title):
+        if url.endswith(".pdf"):
+            return self.download_pdf_content(url)
 
-    # Define main function to call the class
+        options = Options()
+        options.add_argument("--headless")
+        options.add_argument("--window-size=1920,1080")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+
+        with webdriver.Chrome(options=options) as driver:
+            driver.set_page_load_timeout(10)
+            try:
+                driver.get(url)
+                driver.implicitly_wait(5)
+            except Exception as e:
+                return f"An error occurred while fetching the URL: {e}"
+
+            html = driver.page_source
+
+        soup = self.parse_html(html)
+        if len(soup.get_text()) < 100:
+            return f"Empty Page or Page has very few elements without any text. Skipping {title}"
+
+        pdf_link = next(
+            (
+                link["href"]
+                for link in soup.find_all("a")
+                if "href" in link.attrs
+                and "download" in link.text.lower()
+                and link["href"].endswith(".pdf")
+            ),
+            None,
+        )
+
+        if pdf_link:
+            return self.download_pdf_content(pdf_link)
+
+        pdf_file_name = title if title else url.split("/")[-1]
+        pdf_file_path = os.path.join("PDFs", f"{pdf_file_name}.pdf")
+        try:
+            pdfkit.from_url(url, pdf_file_path)
+            return (
+                f"Web page converted to PDF successfully and stored at: {pdf_file_path}"
+            )
+        except Exception as e:
+            if os.path.exists(pdf_file_path):
+                os.remove(pdf_file_path)
+            return f"An error occurred while writing file and removing the file {pdf_file_name}: {e}"
+
+    def clean_directory(self):
+        # Delete all the files in the directory
+        print("Cleaning the PDFs directory")
+        for file in os.listdir("PDFs"):
+            file_path = os.path.join("PDFs", file)
+            try:
+                if os.path.isfile(file_path):
+                    os.unlink(file_path)
+            except Exception as e:
+                print(f"An error occurred while deleting the file: {e}")
+
+    def extract_results(self, results, max_results_to_fetch):
+        self.clean_directory()
+        start_time = time.time()
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = [
+                executor.submit(
+                    self.locate_and_download_pdf, result["link"], result["title"]
+                )
+                for result in results[:max_results_to_fetch]
+                if "link" in result and "title" in result
+            ]
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    future.result(timeout=15)
+                except concurrent.futures.TimeoutError:
+                    print(
+                        "Parsing the HTML took too long and was stopped after 10 seconds."
+                    )
+
+        end_time = time.time()
+        total_time = round(end_time - start_time, 2)
+        print(f"Total Time taken to download {max_results_to_fetch} PDFs: {total_time}")
 
 
 if __name__ == "__main__":
     query = QueryGoogleScholar(query="COVID-19")
-    # results = query.run()
-    # print(results)
     print("Going to call Scholar API Directly")
-    query = QueryGoogleScholar(query="Oriental Herbs for Skin care")
+    query = QueryGoogleScholar(
+        query="Psoris and treatment options for skin", max_pages=5
+    )
     results = query.run_query()
-    # Convert it into results array
     results = json.loads(results)
     count = len(results)
     print(f"Total Results: {count}")
-    # print(results)
-    # Iterate results object and extract the link attribute from the result json
-    print("Going to download PDFs")
-    for result in results:
-        # See if result has link attribute
-        if "link" not in result:
-            continue
-        if "title" not in result:
-            continue
-        print(result["link"])
-        print(result["title"])
-        # print(result["publication_info"])
-        query.locate_and_download_pdf(result["link"], result["title"])
-
-    # print(results)
+    max_results_to_fetch = min(100, count)
+    print(
+        f"Going to download PDFs up to {max_results_to_fetch} results from {count} results"
+    )
+    query.extract_results(results, max_results_to_fetch)
