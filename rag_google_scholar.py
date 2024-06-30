@@ -142,6 +142,7 @@ async def get_response(request: Request, query: str = Form(...)):
 
     print("Going to load and store research papers for query: ", query)
     load_and_store_research_papers(query)
+    gpt4_response_list_answer = ""
     qa_gpt4 = RetrievalQAWithSourcesChain.from_chain_type(
         llm=gpt4,
         chain_type="stuff",
@@ -175,13 +176,17 @@ async def get_response(request: Request, query: str = Form(...)):
 
     for response in gpt4_response_list:
         print("The response from MultiQueryRetriever is: ", response)
-        answer += "<br>"
-        answer += "#####GPT4 Multi Query Retriever Response: Start ######"
-        answer += "<br>"
-        answer += response
-        answer += "<br>"
-        answer += "#####GPT4 Multi Query Retriever Response: End ######"
-        answer += "<br>"
+        gpt4_response_list_answer += "<br>"
+        gpt4_response_list_answer += (
+            "#####GPT4 Multi Query Retriever Response: Start ######"
+        )
+        gpt4_response_list_answer += "<br>"
+        gpt4_response_list_answer += response
+        gpt4_response_list_answer += "<br>"
+        gpt4_response_list_answer += (
+            "#####GPT4 Multi Query Retriever Response: End ######"
+        )
+        gpt4_response_list_answer += "<br>"
 
     response_data = jsonable_encoder(
         json.dumps(
@@ -189,6 +194,7 @@ async def get_response(request: Request, query: str = Form(...)):
                 "answer": answer,
                 "source_document": doc,
                 "doc": doc,
+                "gpt4_response_list_answer": gpt4_response_list_answer,
             }
         )
     )

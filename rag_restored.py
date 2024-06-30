@@ -146,6 +146,7 @@ multi_retriever = MultiQueryRetriever(
 multi_retriever_local_llm = MultiQueryRetriever(
     retriever=db.as_retriever(), llm_chain=multi_local_llm_chain, parser_key="lines"
 )
+chat_history = []
 
 
 def get_queries(query_string):
@@ -229,7 +230,7 @@ async def get_response(request: Request, query: str = Form(...)):
         doc += "<br>"
         index += 1
     # local_llm_answer = local_llm_response["result"]
-    local_llm_source_document = " "
+    # local_llm_source_document = " "
     """for local_llm_source_doc in local_llm_response["source_documents"]:
         print(
             "The source document for Local LLM is: ",
@@ -284,6 +285,76 @@ async def get_response(request: Request, query: str = Form(...)):
                 # "local_llm_answer": local_llm_answer,
                 # "local_llm_source_document": local_llm_source_document,
                 # "local_llm_doc": local_llm_doc,
+            }
+        )
+    )
+
+    res = Response(response_data)
+    return res
+
+
+@app.post("/continue_chat")
+async def continue_chat(request: Request, query: str = Form(...)):
+    chain_type_kwargs = {"prompt": prompt}
+
+    qa_gpt4 = RetrievalQAWithSourcesChain.from_chain_type(
+        llm=gpt4,
+        chain_type="stuff",
+        retriever=retriever,
+        return_source_documents=True,
+        chain_type_kwargs=chain_type_kwargs,
+        verbose=True,
+    )
+
+    chat_history.append(query)
+    context = "\n".join(chat_history)
+    refined_query = f"{context}\n{query}"
+
+    gpt4_response = qa_gpt4(refined_query)
+    gpt4_response_list = get_queries(refined_query)
+
+    answer = gpt4_response["answer"]
+    gpt4_response_list_answer = ""
+    doc = "GPT4: Source Document: List <br>"
+    index = 0
+    base_url = request.base_url
+    base_url = str(base_url)
+    print("The base URL is: ", base_url)
+
+    for source_doc in gpt4_response["source_documents"]:
+        doc += "<br> Source Document: " + str(index) + "<br>"
+        doc += (
+            "<a href='"
+            + base_url
+            + source_doc.metadata["source"]
+            + "'>"
+            + source_doc.metadata["source"]
+            + "</a>"
+        )
+        doc += "<br>"
+        index += 1
+
+    for response in gpt4_response_list:
+        print("The response from MultiQueryRetriever is: ", response)
+        gpt4_response_list_answer += "<br>"
+        gpt4_response_list_answer += (
+            "#####GPT4 Multi Query Retriever Response: Start ######"
+        )
+        gpt4_response_list_answer += "<br>"
+        gpt4_response_list_answer += response
+        gpt4_response_list_answer += "<br>"
+        gpt4_response_list_answer += (
+            "#####GPT4 Multi Query Retriever Response: End ######"
+        )
+        gpt4_response_list_answer += "<br>"
+
+    response_data = jsonable_encoder(
+        json.dumps(
+            {
+                "answer": answer,
+                "source_document": doc,
+                "doc": doc,
+                "gpt4_response_list_answer": gpt4_response_list_answer,
             }
         )
     )
