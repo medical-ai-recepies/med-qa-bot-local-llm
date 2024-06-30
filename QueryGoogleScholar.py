@@ -7,6 +7,9 @@ from selenium.webdriver.chrome.options import Options
 import time
 import json
 import pdfkit
+
+# Importing to manage the PDF file size check for empty PDFs and pages check
+from pypdf import PdfReader, PdfWriter
 from pydantic import BaseModel, Field
 from google_scholar_organic_query import GoogleScholarOrganicQuery
 
@@ -67,7 +70,7 @@ class QueryGoogleScholar(BaseModel):
         end = time.time()
         print(f"Time taken to download PDF: {round(end - start, 2)} seconds")
 
-    def _async_locate_and_download(self, url, title):
+    def _async_locate_and_download(self, url, title, pages_to_fetch=5):
         if url.endswith(".pdf"):
             return self.download_pdf_content(url)
 
@@ -110,9 +113,32 @@ class QueryGoogleScholar(BaseModel):
         pdf_file_path = os.path.join("PDFs", f"{pdf_file_name}.pdf")
         try:
             pdfkit.from_url(url, pdf_file_path)
-            return (
-                f"Web page converted to PDF successfully and stored at: {pdf_file_path}"
-            )
+            reader = PdfReader(pdf_file_path)
+            writer = PdfWriter()
+            # Get the total pages in the PDF
+            total_pages = len(reader.pages)
+            if total_pages == 0:
+                os.remove(pdf_file_path)
+                return f"Empty PDF file. Skipping {title}"
+            # Check if the PDF is empty and has no text
+            text = reader.pages[0].extract_text()
+            if len(text) < 100:
+                os.remove(pdf_file_path)
+                return f"Empty PDF file. Skipping {title}"
+            # Check the size of PDF and if its more than 1.5 MB then extract only pages_to_fetch pages
+            if os.path.getsize(pdf_file_path) > 1.5 * 1024 * 1024:
+                for i in range(min(pages_to_fetch, total_pages)):
+                    writer.add_page(reader.pages[i])
+                writer.write(pdf_file_path)
+                return f"Web page converted to PDF successfully and stored at: {pdf_file_path}"
+            # Remove all BLANK pages from the PDF
+            writer = PdfWriter()
+            for i in range(total_pages):
+                text = reader.pages[i].extract_text()
+                if len(text) > 100:
+                    writer.add_page(reader.pages[i])
+            total_pages = len(writer.pages)
+            return f"Web page converted to PDF successfully and stored at: {pdf_file_path} and total pages: {total_pages}"
         except Exception as e:
             if os.path.exists(pdf_file_path):
                 os.remove(pdf_file_path)
@@ -157,7 +183,7 @@ if __name__ == "__main__":
     query = QueryGoogleScholar(query="COVID-19")
     print("Going to call Scholar API Directly")
     query = QueryGoogleScholar(
-        query="Psoris and treatment options for skin", max_pages=5
+        query="Psoris and treatment options for skin", max_pages=20
     )
     results = query.run_query()
     results = json.loads(results)

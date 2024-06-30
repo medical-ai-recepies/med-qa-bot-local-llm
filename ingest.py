@@ -155,7 +155,7 @@ def load_and_store_research_papers(query_string, no_of_documents):
         loader_cls=PyPDFLoader,
     )
     documents = pdf_loader.load()
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000, chunk_overlap=500)
     texts = text_splitter.split_documents(documents)
     vectorstore = Milvus.from_documents(
         texts,

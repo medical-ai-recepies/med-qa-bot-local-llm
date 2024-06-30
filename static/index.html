@@ -37,6 +37,7 @@
             color: white;
             padding: 10px 20px;
             font-size: 1.2em;
+            margin-right: 10px;
         }
         .chat-response {
             background-color: #444;
@@ -58,13 +59,13 @@
             color: white; /* Improved visibility of text */
         }
         pre {
-            white-space:pre-wrap;
+            white-space: pre-wrap;
         }
     </style>
 </head>
 <body>
     <div class="container chat-container">
-        <h1 class="chat-heading">Medical RAG QA App</h1>
+        <h1 class="chat-heading">Google Scholar Powered Medical RAG QA App</h1>
 
         <div class="accordion" id="appDescriptionAccordion">
             <div class="accordion-item">
@@ -75,7 +76,7 @@
                 </h2>
                 <div id="collapseDescription" class="accordion-collapse collapse" aria-labelledby="descriptionHeading" data-bs-parent="#appDescriptionAccordion">
                     <div class="accordion-body text-dark">
-                        This is a RAG implementation using Open Source stack. LLAMA LangChain and Open AI GPT4 along with Meditron 7b local LLM has been used to build this app along with BGE Embeddings as an embedding model, Milus Vector DB as a vector store, and Langchain & CTransformers as an orchestration frameworks.
+                        This is a RAG implementation powered by data from Google Scholar using Open Source stack. LLAMA LangChain and Open AI GPT4o along with Meditron 7b local LLM has been used to build this app along with BGE Embeddings as an embedding model, Milus Vector DB as a vector store, and Langchain & CTransformers as an orchestration frameworks.
                     </div>
                 </div>
             </div>
@@ -84,10 +85,11 @@
         <div class="row">
             <div class="col">
                 <textarea id="userInput" class="form-control chat-input" placeholder="Type your query here..."></textarea>
-                <button id="submitBtn" class="btn chat-button">Submit</button>
-                <div class="accordion-body text-light">Open AI - GPT4 Response </div>
+                <button id="submitBtn" class="btn chat-button">Start a New Search...</button>
+                <button id="continueBtn" class="btn chat-button">Continue Refining...</button>
+                <div class="accordion-body text-light">Open AI - GPT4o Response </div>
                 <div id="response" class="chat-response"></div>
-                <div class="accordion-body text-light">Localized LLM (Meditron 7b Response) </div>
+                <div class="accordion-body text-light">Multi Query Retriever Response(s)</div>
                 <div id="response_meditron7b" class="chat-response"></div>
             </div>
         </div>
@@ -113,13 +115,37 @@
 
                 const data = await response.json();
                 document.getElementById('response').innerHTML = `<p>${data.answer}</p><br><pre><b>Source Document: </b> ${data.doc}</pre>`;
-                document.getElementById('response_meditron7b').innerHTML = `<p>${data.local_llm_answer}</p><br><pre><b>Source Document: </b> ${data.local_llm_source_document}</pre><br>`;
+                document.getElementById('response_meditron7b').innerHTML = `<p>${data.gpt4_response_list_answer}</p><br><br>`;
+                //document.getElementById('response_meditron7b').innerHTML = `<p>${data.local_llm_answer}</p><br><pre><b>Source Document: </b> ${data.local_llm_source_document}</pre><br>`;
             } catch (error) {
                 console.error('Error:', error);
                 document.getElementById('response').innerHTML = '<p>Error processing your request</p>';
             }
         });
 
+        document.getElementById('continueBtn').addEventListener('click', async function() {
+            var userInput = document.getElementById('userInput').value;
+            document.getElementById('response').innerHTML = '<p>Processing...</p>';
+            const formData = new FormData();
+            formData.append('query', userInput); 
+            try {
+                const response = await fetch('/continue_chat', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const data = await response.json();
+                document.getElementById('response').innerHTML = `<p>${data.answer}</p><br><pre><b>Source Document: </b> ${data.doc}</pre>`;
+                document.getElementById('response_meditron7b').innerHTML = `<p>${data.gpt4_response_list_answer}</p><br><br>`;
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('response').innerHTML = '<p>Error processing your request</p>';
+            }
+        });
     </script>
 </body>
 </html>
