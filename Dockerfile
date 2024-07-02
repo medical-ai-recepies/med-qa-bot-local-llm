@@ -42,6 +42,8 @@ RUN git clone https://github.com/medical-ai-recepies/med-qa-bot-local-llm.git
 # Change directory to the repository and checkout the dev branch
 WORKDIR /med-qa-bot-local-llm
 RUN git checkout dev
+#Create a folder called logs
+RUN mkdir logs
 
 # Create and activate conda environment
 RUN conda env create -f environment.yml
@@ -51,5 +53,6 @@ SHELL ["conda", "run", "-n", "medical_llm_env", "/bin/bash", "-c"]
 EXPOSE 8001
 
 # Run the application
-CMD ["conda", "run", "-n", "medical_llm_env", "python", "rag_google_scholar.py"]
+CMD conda run -n medical_llm_env python rag_google_scholar.py > /med-qa-bot-local-llm/logs/output.log 2>&1
+
 
