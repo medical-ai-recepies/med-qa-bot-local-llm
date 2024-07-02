@@ -46,7 +46,7 @@ RUN git checkout dev
 RUN mkdir logs
 
 # Create and activate conda environment
-RUN conda env create -f environment.yml
+RUN conda env create -f environment.yml --verbose
 SHELL ["conda", "run", "-n", "medical_llm_env", "/bin/bash", "-c"]
 
 # Expose the port

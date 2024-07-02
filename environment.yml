@@ -48,7 +48,7 @@ dependencies:
       - fsspec==2024.3.1
       - future==1.0.0
       - google-search-results==2.4.2
-      - gpt4all==2.7.0 -vvv
+      - gpt4all==2.7.0
       - grpcio==1.60.0
       - h11==0.14.0
       - html5lib==1.1
