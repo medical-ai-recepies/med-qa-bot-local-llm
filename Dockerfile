@@ -51,4 +51,5 @@ SHELL ["conda", "run", "-n", "medical_llm_env", "/bin/bash", "-c"]
 EXPOSE 8001
 
 # Run the application
-CMD ["conda", "run", "-n", "medical_llm_env", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--log-level", "info"]
+CMD ["conda", "run", "-n", "medical_llm_env", "python", "rag_google_scholar.py"]
+

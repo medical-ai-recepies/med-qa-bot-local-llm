@@ -154,3 +154,4 @@ dependencies:
       - wsproto==1.2.0
       - yarl==1.9.4
       - zopfli==0.2.3
+      - scrape-google-scholar-py==0.3.4
