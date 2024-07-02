@@ -24,8 +24,8 @@ RUN if [ "$(uname -m)" = "x86_64" ]; then \
 # Set up the path for conda
 ENV PATH /opt/conda/bin:$PATH
 
-# Install Python 3.11.2
-RUN conda install -y python=3.11.2
+# Install Python 3.12.1
+RUN conda install -y python=3.12.1
 
 # Re-install necessary packages for your app
 RUN apt-get update && \
