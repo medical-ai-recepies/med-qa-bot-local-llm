@@ -53,6 +53,6 @@ SHELL ["conda", "run", "-n", "medical_llm_env", "/bin/bash", "-c"]
 EXPOSE 8001
 
 # Run the application
-CMD conda run -n medical_llm_env python rag_google_scholar.py > /med-qa-bot-local-llm/logs/output.log 2>&1
+CMD conda run -n medical_llm_env python rag_google_scholar.py
 
 
